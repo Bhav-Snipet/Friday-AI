@@ -1,0 +1,38 @@
+# F.R.I.D.A.Y. — .gitignore
+
+# Session data & Chrome profile (contains login cookies — never commit this)
+chromedata/
+*.wdm/
+.wdm/
+
+# API keys
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs / temp
+*.log
+output.txt
+web/input.txt
+web/response.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

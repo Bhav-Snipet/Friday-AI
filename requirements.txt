@@ -1,0 +1,8 @@
+selenium>=4.10.0
+webdriver-manager>=4.0.0
+eel>=0.14.0
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+# pyaudio – requires Microsoft C++ Build Tools to compile on Windows.
+# Install manually:  https://visualstudio.microsoft.com/visual-cpp-build-tools/
+# Then run:  pip install pyaudio

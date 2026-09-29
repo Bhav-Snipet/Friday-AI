@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>F.R.I.D.A.Y. — Bhav-Snipet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --blue:    #00d4ff;
+      --blue2:   #0088ff;
+      --glow:    rgba(0,212,255,0.18);
+      --panel:   rgba(0,18,36,0.82);
+      --border:  rgba(0,212,255,0.22);
+      --text:    #c8f0ff;
+      --dim:     rgba(0,212,255,0.45);
+      --gold:    #ffd700;
+      --red:     #ff4060;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000610;
+      overflow: hidden;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text);
+    }
+
+    /* ── Starfield ─────────────────────────────────────── */
+    #stars { position: fixed; inset: 0; pointer-events: none; }
+
+    /* ── Grid overlay ──────────────────────────────────── */
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--glow) 1px, transparent 1px),
+        linear-gradient(90deg, var(--glow) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+      animation: gridBreath 6s ease-in-out infinite;
+    }
+    @keyframes gridBreath {
+      0%,100% { opacity:.35; } 50% { opacity:.7; }
+    }
+
+    /* ── Scan line sweep ───────────────────────────────── */
+    .scanline {
+      position: fixed; inset: 0; pointer-events: none;
+      background: linear-gradient(transparent 50%, rgba(0,212,255,.015) 50%);
+      background-size: 100% 4px;
+    }
+    .sweep {
+      position: fixed; top: -2px; left: 0; width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      animation: sweep 5s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes sweep { 0%{top:-2px} 100%{top:100vh} }
+
+    /* ── Main layout ───────────────────────────────────── */
+    .layout {
+      position: fixed; inset: 0;
+      display: grid;
+      grid-template-columns: 260px 1fr 260px;
+      grid-template-rows: 64px 1fr 220px 48px;
+      gap: 0;
+      padding: 12px;
+    }
+
+    /* ── Generic holographic panel ─────────────────────── */
+    .holo {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      backdrop-filter: blur(14px);
+      position: relative;
+      overflow: hidden;
+    }
+    .holo::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    /* corner brackets */
+    .holo::after {
+      content: '';
+      position: absolute;
+      top: 4px; left: 4px; right: 4px; bottom: 4px;
+      border: 1px solid rgba(0,212,255,.07);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    /* ── TOP BAR ───────────────────────────────────────── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px;
+      margin-bottom: 8px;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px; font-weight: 900;
+      letter-spacing: .35em;
+      color: var(--blue);
+      text-shadow: 0 0 20px rgba(0,212,255,.8), 0 0 60px rgba(0,212,255,.3);
+    }
+    .logo span { color: var(--gold); }
+    .tagline {
+      font-size: 10px; letter-spacing: .14em;
+      color: var(--dim); text-transform: uppercase; margin-top: 2px;
+    }
+
+    /* AI Switcher */
+    .ai-switcher {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .ai-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px; letter-spacing: .12em;
+      padding: 7px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(0,212,255,.06);
+      color: var(--dim);
+      cursor: pointer;
+      transition: all .25s;
+      text-transform: uppercase;
+      position: relative; overflow: hidden;
+    }
+    .ai-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,.15), transparent);
+      opacity: 0; transition: opacity .25s;
+    }
+    .ai-btn:hover::after, .ai-btn.active::after { opacity: 1; }
+    .ai-btn.active {
+      border-color: var(--blue);
+      color: var(--blue);
+      box-shadow: 0 0 16px rgba(0,212,255,.35), inset 0 0 10px rgba(0,212,255,.08);
+    }
+    .ai-btn.gemini.active { border-color: #4285f4; color: #4285f4; box-shadow: 0 0 16px rgba(66,133,244,.35); }
+    .ai-btn.claude.active  { border-color: #d97706; color: #d97706; box-shadow: 0 0 16px rgba(217,119,6,.35); }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 10px; letter-spacing: .1em; color: var(--dim);
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00ff88;
+      box-shadow: 0 0 8px #00ff88;
+      animation: blink 1.5s step-end infinite;
+    }
+    @keyframes blink { 50%{opacity:0;} }
+
+    /* ── LEFT PANEL ────────────────────────────────────── */
+    .left-panel {
+      grid-column: 1; grid-row: 2 / 4;
+      margin-right: 8px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px; letter-spacing: .2em;
+      color: var(--dim); text-transform: uppercase;
+      padding: 10px 14px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* System stats */
+    .stats-box {
+      flex: 0 0 auto;
+      padding: 0 0 8px;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 14px;
+      font-size: 11px;
+    }
+    .stat-row .label { color: var(--dim); }
+    .stat-row .val   { color: var(--blue); font-weight: 600; }
+    .bar-wrap { height: 3px; background: rgba(0,212,255,.1); border-radius: 2px; margin: 2px 14px 0; }
+    .bar      { height: 3px; background: linear-gradient(90deg, var(--blue2), var(--blue)); border-radius: 2px; transition: width 1s; }
+
+    /* Chat history */
+    .chat-history {
+      flex: 1; overflow-y: auto; padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .chat-history::-webkit-scrollbar { width: 3px; }
+    .chat-history::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg { font-size: 11.5px; line-height: 1.55; }
+    .msg .who {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 8px; letter-spacing: .15em;
+      margin-bottom: 3px; text-transform: uppercase;
+    }
+    .msg.user .who  { color: var(--gold); }
+    .msg.ai   .who  { color: var(--blue); }
+    .msg .body      { color: var(--text); opacity: .88; }
+
+    /* ── CENTER ─────────────────────────────────────────── */
+    .center-wrap {
+      grid-column: 2; grid-row: 2;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; position: relative;
+    }
+
+    /* FRIDAY big logo */
+    .friday-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(3rem, 7vw, 6rem);
+      font-weight: 900; letter-spacing: .45em;
+      color: rgba(0,212,255,.12);
+      text-shadow:
+        0 0 40px rgba(0,212,255,.2),
+        0 0 100px rgba(0,212,255,.07);
+      user-select: none; pointer-events: none;
+      transition: all .8s;
+      padding-right: .45em;
+    }
+    .friday-logo.pulse {
+      color: rgba(0,212,255,.55);
+      text-shadow: 0 0 24px rgba(0,212,255,.8), 0 0 80px rgba(0,212,255,.4);
+    }
+
+    /* Arc reactor ring */
+    .arc-ring {
+      position: absolute;
+      width: 320px; height: 320px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,212,255,.15);
+      box-shadow: inset 0 0 30px rgba(0,212,255,.04);
+      animation: spin 18s linear infinite;
+      pointer-events: none;
+    }
+    .arc-ring::before {
+      content: '';
+      position: absolute; inset: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,212,255,.08);
+      border-top-color: rgba(0,212,255,.5);
+      animation: spin 8s linear infinite reverse;
+    }
+    .arc-ring::after {
+      content: '';
+      position: absolute; inset: 28px;
+      border-radius: 50%;
+      border: 1px dashed rgba(0,212,255,.06);
+      border-top-color: rgba(0,212,255,.3);
+      animation: spin 4s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Current AI badge */
+    .ai-badge {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px; letter-spacing: .2em;
+      color: var(--dim); text-transform: uppercase;
+      margin-top: 12px;
+    }
+    #aiBadgeVal { color: var(--blue); }
+
+    /* ── WAVEFORM ───────────────────────────────────────── */
+    .wave-wrap {
+      grid-column: 2; grid-row: 3;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 16px;
+    }
+    #waveCanvas {
+      width: 100%; height: 100%;
+      border-radius: 8px;
+    }
+
+    /* ── RIGHT PANEL ────────────────────────────────────── */
+    .right-panel {
+      grid-column: 3; grid-row: 2 / 4;
+      margin-left: 8px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    /* Input / Response boxes */
+    .io-box {
+      flex: 1;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .io-content {
+      flex: 1; padding: 10px 14px;
+      font-size: 12px; line-height: 1.6;
+      overflow-y: auto; word-break: break-word;
+    }
+    .io-content::-webkit-scrollbar { width: 3px; }
+    .io-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    #inputText  { color: var(--gold); }
+    #outputText { color: var(--text); }
+
+    /* Typing indicator */
+    .typing { display: none; padding: 8px 14px; gap: 5px; align-items: center; }
+    .typing.active { display: flex; }
+    .typing span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--blue); animation: bounce .9s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay:.15s; }
+    .typing span:nth-child(3) { animation-delay:.30s; }
+    @keyframes bounce { 0%,80%,100%{transform:scale(.7)} 40%{transform:scale(1)} }
+
+    /* ── BOTTOM BAR ─────────────────────────────────────── */
+    .bottom-bar {
+      grid-column: 1/-1;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; margin-top: 6px;
+      font-size: 10px; color: var(--dim); letter-spacing: .1em;
+    }
+    .watermark {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px; letter-spacing: .2em;
+      color: rgba(0,212,255,.3);
+    }
+    .watermark span { color: rgba(0,212,255,.55); }
+  </style>
+</head>
+<body>
+
+<!-- Backgrounds -->
+<canvas id="stars"></canvas>
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="sweep"></div>
+
+<div class="layout">
+
+  <!-- TOP BAR -->
+  <div class="topbar holo">
+    <div>
+      <div class="logo">F.R.I.D.<span>A</span>.Y.</div>
+      <div class="tagline">Female Replacement Intelligent Digital Assistant Youth</div>
+    </div>
+
+    <div class="ai-switcher">
+      <button class="ai-btn active" id="btn-piai"   onclick="switchAI('piai')">Pi.ai</button>
+      <button class="ai-btn gemini" id="btn-gemini" onclick="switchAI('gemini')">Gemini</button>
+      <button class="ai-btn claude" id="btn-claude" onclick="switchAI('claude')">Claude</button>
+    </div>
+
+    <div class="status-pill">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">ONLINE</span>
+    </div>
+  </div>
+
+  <!-- LEFT: system stats + chat history -->
+  <div class="left-panel">
+
+    <div class="holo stats-box">
+      <div class="panel-title">⬡ System Status</div>
+      <div class="stat-row"><span class="label">AI CORE</span><span class="val" id="aiCoreVal">PI.AI</span></div>
+      <div class="stat-row"><span class="label">STT</span><span class="val">ACTIVE</span></div>
+      <div class="stat-row"><span class="label">TTS</span><span class="val">READY</span></div>
+      <div class="stat-row"><span class="label">SESSION</span><span class="val" id="sessionVal">LIVE</span></div>
+      <div class="stat-row"><span class="label">WAKE WORD</span><span class="val">"FRIDAY"</span></div>
+      <div style="margin-top:6px">
+        <div class="bar-wrap"><div class="bar" id="actBar" style="width:0%"></div></div>
+        <div class="stat-row" style="padding-top:4px"><span class="label">NEURAL LOAD</span><span class="val" id="loadVal">0%</span></div>
+      </div>
+    </div>
+
+    <div class="holo" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+      <div class="panel-title">⬡ Conversation Log</div>
+      <div class="chat-history" id="chatHistory"></div>
+    </div>
+
+  </div>
+
+  <!-- CENTER: FRIDAY logo + arc rings -->
+  <div class="center-wrap">
+    <div class="arc-ring"></div>
+    <div class="friday-logo" id="fridayLogo">FRIDAY</div>
+    <div class="ai-badge">ACTIVE CORE — <span id="aiBadgeVal">PI.AI</span></div>
+  </div>
+
+  <!-- WAVEFORM -->
+  <div class="wave-wrap holo">
+    <canvas id="waveCanvas"></canvas>
+  </div>
+
+  <!-- RIGHT: input + output -->
+  <div class="right-panel">
+
+    <div class="holo io-box">
+      <div class="panel-title">⬡ Voice Input</div>
+      <div class="io-content" id="inputText">Awaiting wake word "Friday" …</div>
+    </div>
+
+    <div class="holo io-box">
+      <div class="panel-title">⬡ AI Response</div>
+      <div class="io-content" id="outputText">—</div>
+      <div class="typing" id="typingIndicator">
+        <span></span><span></span><span></span>
+        <span style="color:var(--dim);font-size:10px;margin-left:4px">Processing …</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span>PORT 8090  ·  UNIT V1  ·  PYTHON 3.14</span>
+    <div class="watermark">© <span>BHAV-SNIPET</span>  ·  GITHUB.COM/BHAV-SNIPET/FRIDAY-AI</div>
+    <span id="clock"></span>
+  </div>
+
+</div>
+
+<script src="/eel.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════
+   STARS
+═══════════════════════════════════════════════════════ */
+(function(){
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  const stars = Array.from({length:160}, () => ({
+    x: Math.random()*c.width, y: Math.random()*c.height,
+    r: Math.random()*1.2, a: Math.random()
+  }));
+  function drawStars(){
+    ctx.clearRect(0,0,c.width,c.height);
+    stars.forEach(s => {
+      s.a += .003; if(s.a > 1) s.a = 0;
+      ctx.globalAlpha = Math.abs(Math.sin(s.a)) * .6;
+      ctx.fillStyle = '#b0e8ff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(drawStars);
+  }
+  drawStars();
+  window.addEventListener('resize',()=>{ c.width=window.innerWidth; c.height=window.innerHeight; });
+})();
+
+/* ═══════════════════════════════════════════════════════
+   WAVEFORM — frequency-reactive + idle animation
+═══════════════════════════════════════════════════════ */
+const wc  = document.getElementById('waveCanvas');
+const wct = wc.getContext('2d');
+let gt = 0;
+let analyserNode = null;
+let freqData     = null;
+let isSpeaking   = false;  // toggled when AI is generating a response
+
+function resizeWave(){
+  wc.width  = wc.offsetWidth;
+  wc.height = wc.offsetHeight;
+}
+resizeWave();
+window.addEventListener('resize', resizeWave);
+
+function synthWave(len) {
+  const a = new Uint8Array(len);
+  const amp = isSpeaking ? 48 : 14;
+  const freq = isSpeaking ? 0.09 : 0.04;
+  for(let i=0;i<len;i++) a[i] = (Math.sin(i*freq + gt*1.8)+1)*amp;
+  return a;
+}
+
+function drawWave(data) {
+  wct.clearRect(0,0,wc.width,wc.height);
+  gt += 0.022;
+
+  const base = wc.height/2;
+  const maxA = wc.height/2.6;
+  const sw   = wc.width / data.length;
+  const numW = 6;
+
+  const grad = wct.createLinearGradient(0,0,wc.width,0);
+  grad.addColorStop(0,   'rgba(0,80,200,.1)');
+  grad.addColorStop(.35, 'rgba(0,180,255,.9)');
+  grad.addColorStop(.65, 'rgba(0,212,255,.9)');
+  grad.addColorStop(1,   'rgba(0,80,200,.1)');
+
+  for(let j=0;j<numW;j++){
+    wct.beginPath();
+    wct.lineWidth   = j===0 ? 2.5 : 1;
+    wct.strokeStyle = grad;
+    wct.globalAlpha = 1 - j*.14;
+
+    let lx=0, ly=base;
+    for(let i=0;i<data.length;i++){
+      const v    = data[i]/96;
+      const dm   = Math.abs(i - data.length/2) / (data.length/2);
+      const damp = 1 - Math.pow(2*i/data.length-1,2);
+      const amp  = maxA * damp * (1-dm);
+      const dir  = j%2 ? 1:-1;
+      const x    = i*sw;
+      const y    = base + Math.sin(i*(dir*0.27) + gt + j*.9) * amp * v;
+      if(i===0) wct.moveTo(x,y);
+      else {
+        const mx=(x+lx)/2, my=(y+ly)/2;
+        wct.quadraticCurveTo(lx,ly,mx,my);
+      }
+      lx=x; ly=y;
+    }
+    wct.lineTo(wc.width,ly);
+    wct.stroke();
+  }
+  wct.globalAlpha=1;
+
+  if(analyserNode && freqData){
+    analyserNode.getByteFrequencyData(freqData);
+    requestAnimationFrame(()=>drawWave(freqData.slice(0,200)));
+  } else {
+    requestAnimationFrame(()=>drawWave(synthWave(200)));
+  }
+}
+
+// Try live mic
+navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(stream=>{
+  const ac  = new (window.AudioContext||window.webkitAudioContext)();
+  analyserNode = ac.createAnalyser();
+  analyserNode.fftSize = 512;
+  ac.createMediaStreamSource(stream).connect(analyserNode);
+  freqData = new Uint8Array(analyserNode.frequencyBinCount);
+  drawWave(freqData.slice(0,200));
+}).catch(()=>{ drawWave(synthWave(200)); });
+
+/* ═══════════════════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════════════════ */
+function updateClock(){
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.toLocaleTimeString('en-US',{hour12:false}) + '  ·  ' +
+    n.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ═══════════════════════════════════════════════════════
+   NEURAL LOAD ANIMATION
+═══════════════════════════════════════════════════════ */
+let loadTarget = 0;
+let loadCur    = 0;
+function animateLoad(){
+  loadCur += (loadTarget-loadCur)*.04;
+  const pct = Math.round(loadCur);
+  document.getElementById('actBar').style.width  = pct+'%';
+  document.getElementById('loadVal').textContent  = pct+'%';
+  requestAnimationFrame(animateLoad);
+}
+animateLoad();
+
+/* ═══════════════════════════════════════════════════════
+   AI SWITCHER
+═══════════════════════════════════════════════════════ */
+const AI_LABELS = { piai:'PI.AI', gemini:'GEMINI', claude:'CLAUDE' };
+let currentAI = 'piai';
+
+function switchAI(name){
+  currentAI = name;
+  document.querySelectorAll('.ai-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+name).classList.add('active');
+  document.getElementById('aiCoreVal').textContent  = AI_LABELS[name];
+  document.getElementById('aiBadgeVal').textContent = AI_LABELS[name];
+  // Tell Python about the switch
+  try { eel.set_active_ai(name)(); } catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHAT HISTORY
+═══════════════════════════════════════════════════════ */
+let lastInput  = '';
+let lastOutput = '';
+
+function appendMsg(who, text){
+  const hist = document.getElementById('chatHistory');
+  const d = document.createElement('div');
+  d.className = 'msg ' + (who==='You' ? 'user':'ai');
+  d.innerHTML = `<div class="who">${who}</div><div class="body">${text}</div>`;
+  hist.appendChild(d);
+  hist.scrollTop = hist.scrollHeight;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EEL POLLING
+═══════════════════════════════════════════════════════ */
+async function poll(){
+  try {
+    const inp = await eel.get_latest_input()();
+    const out = await eel.get_latest_response()();
+
+    if(inp && inp !== lastInput){
+      lastInput = inp;
+      document.getElementById('inputText').textContent = inp;
+      appendMsg('You', inp);
+      // "thinking" state
+      isSpeaking = false;
+      loadTarget = 75 + Math.random()*20;
+      document.getElementById('typingIndicator').classList.add('active');
+      document.getElementById('fridayLogo').classList.remove('pulse');
+    }
+
+    if(out && out !== lastOutput){
+      lastOutput = out;
+      document.getElementById('outputText').textContent = out;
+      appendMsg('Friday', out);
+      document.getElementById('typingIndicator').classList.remove('active');
+      // speaking animation
+      isSpeaking = true;
+      loadTarget = 30;
+      document.getElementById('fridayLogo').classList.add('pulse');
+      setTimeout(()=>{
+        isSpeaking = false;
+        loadTarget = 5;
+        document.getElementById('fridayLogo').classList.remove('pulse');
+      }, 4000);
+    }
+  } catch(e){}
+}
+
+setInterval(poll, 750);
+</script>
+</body>
+</html>
