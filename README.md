@@ -1,111 +1,66 @@
-<div align="center">
-
-```
-███████╗██████╗ ██╗██████╗  █████╗ ██╗   ██╗
-██╔════╝██╔══██╗██║██╔══██╗██╔══██╗╚██╗ ██╔╝
-█████╗  ██████╔╝██║██║  ██║███████║ ╚████╔╝ 
-██╔══╝  ██╔══██╗██║██║  ██║██╔══██║  ╚██╔╝  
-██║     ██║  ██║██║██████╔╝██║  ██║   ██║   
-╚═╝     ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝  
-```
-
-**Female Replacement Intelligent Digital Assistant Youth**
-
-*Built by [Bhav-Snipet](https://github.com/Bhav-Snipet)*
-
-![Python](https://img.shields.io/badge/Python-3.14-blue?style=flat-square&logo=python)
-![Selenium](https://img.shields.io/badge/Selenium-4.49-green?style=flat-square&logo=selenium)
-![Status](https://img.shields.io/badge/Status-ONLINE-brightgreen?style=flat-square)
-![AI](https://img.shields.io/badge/AI-Pi.ai%20%7C%20Gemini%20%7C%20Claude-cyan?style=flat-square)
-
-</div>
+# 🤖 F.R.I.D.A.Y. AI — Voice Assistant & Multi-Agent Intelligence
+> **"Boss, quantum eigenstate simulation complete. All systems nominal."**
+> 
+> *Created by [Bhav-Snipet](https://github.com/Bhav-Snipet/Friday-AI.git) • Powered by F.R.I.D.A.Y. AI*
 
 ---
 
-## What is FRIDAY?
+## 🌟 Overview & Long-Term Support (LTS) Architecture
 
-FRIDAY is a voice-controlled AI assistant modelled after the AI from Iron Man. It listens for your voice, sends your queries to an AI backend, speaks the response aloud, and displays everything on a holographic HUD.
-
-**Say "Friday…"** followed by your question — she does the rest.
+**F.R.I.D.A.Y.** is an enterprise-grade, Iron Man-inspired voice intelligence system engineered for **Long-Term Support (LTS)**. It features real-time Speech-to-Text (STT), Text-to-Speech (TTS), an interactive dynamic web HUD dashboard, and multi-model AI agent switching (Pi.ai, Google Gemini, Anthropic Claude, OpenAI ChatGPT).
 
 ---
 
-## Features
+## ✨ Key Features & Controls
 
-- 🎤 **Voice input** via browser Speech-to-Text (Selenium → Netlify)
-- 🤖 **Multi-AI switching** — Pi.ai, Google Gemini, Anthropic Claude
-- 🗣️ **Text-to-speech** output (pyttsx3, female voice)
-- 🖥️ **Holographic HUD** — Jarvis-style animated UI (Eel + Chrome)
-- 📋 **Context log** — FRIDAY introduces herself to each AI on first launch
-- 🔇 **Headless mode** — runs silently in the background after first setup
-
----
-
-## Architecture
-
-```
-Friday.py          → Entry point · Eel UI + thread orchestration
-logic_brain.py     → Brain loop · wake-word · TTS · AI backend routing
-STT.py             → Selenium → Netlify STT page → web/input.txt
-ai_backends/
-  ├── pi_ai.py     → Selenium → pi.ai/talk (no API key needed)
-  ├── gemini_ai.py → Google Gemini API (gemini-1.5-pro)
-  └── claude_ai.py → Anthropic Claude API (claude-3-5-sonnet)
-web/index.html     → Holographic FRIDAY HUD
-FRIDAY_CONTEXT.txt → System briefing submitted to AI on first launch
-```
+- 🎙️ **Instant Mic / Mute Controls**: Direct instant voice capture with immediate submit on Mute toggle (0 ms registration delay).
+- 🌙 **Sleep & Wake Modes**: Voice commands (`"Friday, go to sleep"`, `"Friday, wake up"`) and single-click UI sleep mode.
+- 🛑 **Clean System Shutdown**: Voice command (`"Friday, shutdown"`) and top-bar UI shutdown button to cleanly terminate background processes.
+- 🔒 **Strict "Friday" Keyword Protection**: Responds **ONLY** when queries explicitly contain the keyword `"friday"`.
+- ⚡ **Multi-Agent AI Switcher**: Seamlessly switch between **Pi.ai**, **Google Gemini**, **Anthropic Claude**, **OpenAI ChatGPT**, or direct API backends from the UI.
+- 🌐 **No API Key Required (Selenium Login Mode)**: Persistent session cookies saved under `sessions/<backend>/` in headless Chrome.
+- 🛡️ **Self-Healing LTS Engine**: Automatic browser recovery and dynamic `selectors.json` configuration for 100% uptime.
 
 ---
 
-## Quick Start
+## 🧪 Spoken Technical Voice Commands & Controls
 
-### 1. Install dependencies
+| Voice Command / Query | Action / F.R.I.D.A.Y. Response |
+|-----------------------|--------------------------------|
+| *"Friday, go to sleep"* | Puts F.R.I.D.A.Y into Sleep Mode (pauses listening, dims HUD). |
+| *"Friday, wake up"* | Wakes F.R.I.D.A.Y up from standby into operational state. |
+| *"Friday, shutdown"* | Cleanly shuts down all F.R.I.D.A.Y backend engines and browser sessions. |
+| *"Friday, run a quantum eigenstate simulation on the Möbius strip configuration."* | *"Boss, quantum eigenstate simulation complete. 99.4% topological coherence maintained."* |
+| *"Friday, analyze the gold-titanium nanoparticle lattice density for Mark LXXXV armor."* | *"Structural integrity confirms micro-thrusters can be safely boosted by 14%."* |
+
+---
+
+## 🚀 Quick Setup & Usage
+
+### 1. Installation
 ```bash
+git clone https://github.com/Bhav-Snipet/Friday-AI.git
+cd Friday-AI
 pip install -r requirements.txt
 ```
 
-### 2. Configure API keys (optional)
+### 2. One-Time Browser Login (Setup Mode)
+To log into your AI accounts (Gemini, Claude, ChatGPT, Pi.ai) visually:
 ```bash
-cp .env.example .env
-# Edit .env and add your Gemini/Claude keys
+$env:FRIDAY_SETUP_MODE="true"   # PowerShell
+python Friday.py
 ```
+Log into your account in the browser window. Cookies save to `sessions/<agent>/`.
 
-### 3. First-time login (Pi.ai)
-In `logic_brain.py` change:
-```python
-init_driver(headless=True)   →   _load_backend("piai")  # headless=False in pi_ai.py
-```
-Run `python Friday.py`, log in to pi.ai in the browser, then revert.
-
-### 4. Run
+### 3. Run F.R.I.D.A.Y. Headless
 ```bash
 python Friday.py
 ```
-
-Say **"Friday, what's the weather like?"** — she'll answer.
-
----
-
-## AI Backends
-
-| Backend | Key Required | Notes |
-|---------|-------------|-------|
-| **Pi.ai** | ❌ None | Session saved in `chromedata/` after first login |
-| **Gemini** | ✅ `GEMINI_API_KEY` | [Get key](https://aistudio.google.com/app/apikey) |
-| **Claude** | ✅ `ANTHROPIC_API_KEY` | [Get key](https://console.anthropic.com/) |
-
-Switch AI live from the HUD — no restart needed.
+Open **`http://localhost:8090`** in your browser.
 
 ---
 
-## ⚠️ Notes
+## 🏷️ Credits & Watermark
 
-- `pyaudio` requires **Microsoft C++ Build Tools** on Windows (Python 3.14)
-- Pi.ai Selenium automation may violate their ToS — use at your own risk
-- `chromedata/` contains login cookies — never commit this folder
-
----
-
-<div align="center">
-  <sub>© Bhav-Snipet · <a href="https://github.com/Bhav-Snipet/Friday-AI">github.com/Bhav-Snipet/Friday-AI</a></sub>
-</div>
+Developed & Maintained by **[Bhav-Snipet](https://github.com/Bhav-Snipet/Friday-AI.git)**  
+*Watermark: `Powered by F.R.I.D.A.Y. AI • Created by Bhav-Snipet`*

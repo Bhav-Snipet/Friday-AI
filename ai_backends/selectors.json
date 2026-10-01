@@ -1,0 +1,82 @@
+{
+  "_comment": "F.R.I.D.A.Y. LTS Selector Configuration — Editable without touching Python code!",
+  "piai": {
+    "url": "https://pi.ai/talk",
+    "input_selectors": [
+      "textarea[placeholder*='Talk']",
+      "textarea",
+      "div[contenteditable='true']",
+      "[role='textbox']"
+    ],
+    "send_selectors": [
+      "button[aria-label*='Send']",
+      "button[type='submit']",
+      "button.send-button"
+    ],
+    "response_selectors": [
+      "div[class*='markdown']",
+      "div[class*='response']",
+      "div[class*='message-text']",
+      "div.prose",
+      "p"
+    ]
+  },
+  "gemini": {
+    "url": "https://gemini.google.com/app",
+    "input_selectors": [
+      "div[contenteditable='true']",
+      "rich-textarea div[contenteditable]",
+      "textarea",
+      "[role='textbox']"
+    ],
+    "send_selectors": [
+      "button[aria-label*='Send']",
+      "button.send-button",
+      "[data-mat-icon-name='send']"
+    ],
+    "response_selectors": [
+      "message-content",
+      ".model-response-text",
+      "div.markdown",
+      ".response-container-content"
+    ]
+  },
+  "claude": {
+    "url": "https://claude.ai/chats",
+    "input_selectors": [
+      "div[contenteditable='true']",
+      "fieldset div[contenteditable]",
+      "textarea",
+      "[role='textbox']"
+    ],
+    "send_selectors": [
+      "button[aria-label*='Send']",
+      "button[data-testid='send-button']"
+    ],
+    "response_selectors": [
+      "div[data-is-streaming]",
+      "div.font-claude-message",
+      "div.grid-cols-1",
+      "div.prose"
+    ]
+  },
+  "chatgpt": {
+    "url": "https://chat.openai.com",
+    "input_selectors": [
+      "#prompt-textarea",
+      "div[contenteditable='true']",
+      "textarea",
+      "[role='textbox']"
+    ],
+    "send_selectors": [
+      "button[data-testid='send-button']",
+      "button[aria-label*='Send']"
+    ],
+    "response_selectors": [
+      "div[data-message-author-role='assistant']",
+      "div.agent-turn",
+      "div.markdown",
+      "div.prose"
+    ]
+  }
+}

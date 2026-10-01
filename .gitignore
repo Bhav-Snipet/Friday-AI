@@ -2,6 +2,7 @@
 
 # Session data & Chrome profile (contains login cookies — never commit this)
 chromedata/
+sessions/
 *.wdm/
 .wdm/
 

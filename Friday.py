@@ -2,13 +2,13 @@
 Friday.py  –  F.R.I.D.A.Y. V1 Entry Point
 Created by Bhav  ·  github.com/Bhav-Snipet/Friday-AI
 """
+import logging
 import os
+import pathlib
+import sys
 import threading
 import time
-import pathlib
-import logging
 
-# Load .env if present
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -16,7 +16,13 @@ except ImportError:
     pass
 
 import eel
-from logic_brain import friday_brain, set_active_ai
+from logic_brain import (
+    friday_brain,
+    set_active_ai as _brain_set_ai,
+    get_active_ai as _brain_get_ai,
+    request_shutdown
+)
+
 
 logging.basicConfig(level=logging.INFO, format="[FRIDAY] %(message)s")
 log = logging.getLogger(__name__)
@@ -46,10 +52,37 @@ def get_latest_response() -> str:
     except: return ""
 
 @eel.expose
+def get_active_ai() -> str:
+    """Return active AI name for UI sync."""
+    return _brain_get_ai()
+
+@eel.expose
 def set_active_ai(name: str):
     """Called from JS when user clicks an AI switcher button."""
     log.info(f"AI switched to: {name}")
-    set_active_ai(name)
+    _brain_set_ai(name)
+
+@eel.expose
+def send_voice_input(text: str):
+    """Direct instant voice/text submission from UI."""
+    if text:
+        log.info(f"UI submitted text: {text!r}")
+        INPUT_FILE.write_text(text, encoding="utf-8")
+
+@eel.expose
+def shutdown_friday():
+    log.info("Shutdown requested from UI button.")
+    request_shutdown()
+    time.sleep(0.5)
+    os._exit(0)
+
+
+
+def _on_window_close(page, sockets):
+    log.info("Browser window closed by user — shutting down all F.R.I.D.A.Y. processes...")
+    request_shutdown()
+    time.sleep(0.5)
+    os._exit(0)
 
 
 # ── UI thread ─────────────────────────────────────────────────────────────────
@@ -60,10 +93,12 @@ def _ui():
             mode="chrome",
             port=8090,
             cmdline_args=["--start-fullscreen"],
+            close_callback=_on_window_close,
             block=True,
         )
     except Exception as e:
         log.error(f"UI error: {e}")
+
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -78,12 +113,12 @@ def friday():
     t_ui    = threading.Thread(target=_ui,           daemon=True, name="FridayUI")
 
     t_brain.start()
-    time.sleep(2)
+    time.sleep(1)
     t_ui.start()
 
     try:
         while t_brain.is_alive() or t_ui.is_alive():
-            time.sleep(1)
+            time.sleep(0.5)
     except KeyboardInterrupt:
         log.info("Shutdown requested — goodbye, Boss.")
 

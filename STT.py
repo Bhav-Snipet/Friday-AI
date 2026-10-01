@@ -25,9 +25,8 @@ _stop_event = threading.Event()
 
 def _build_stt_driver() -> webdriver.Chrome:
     """
-    Build a headless Chrome instance that:
-    - Grants microphone permission automatically (needed by the STT page)
-    - Uses --use-fake-ui-for-media-stream so Chrome won't pop a permission dialog
+    Build a headless Chrome instance that auto-grants microphone permission.
+    Uses --use-fake-ui-for-media-stream so Chrome doesn't pop a permission dialog.
     """
     opts = Options()
     opts.add_argument("--headless=new")
@@ -35,11 +34,7 @@ def _build_stt_driver() -> webdriver.Chrome:
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--log-level=3")
-
-    # Fake the media stream permission grant so headless Chrome allows mic access
     opts.add_argument("--use-fake-ui-for-media-stream")
-    # If you want to use a real mic feed instead of silence: remove the next line
-    opts.add_argument("--use-fake-device-for-media-stream")
 
     service = Service(ChromeDriverManager().install())
     drv = webdriver.Chrome(service=service, options=opts)
@@ -61,7 +56,7 @@ def listen(stop_event: threading.Event = _stop_event) -> None:
     log.info(f"Opened STT page: {STT_URL}")
 
     try:
-        # Wait for the Start button to appear
+        # Wait for the Start button to appear and click it
         start_btn = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.ID, "startButton"))
         )
@@ -72,7 +67,7 @@ def listen(stop_event: threading.Event = _stop_event) -> None:
 
         while not stop_event.is_set():
             try:
-                output_el = WebDriverWait(driver, 10).until(
+                output_el = WebDriverWait(driver, 3).until(
                     EC.presence_of_element_located((By.ID, "output"))
                 )
                 current_text = output_el.text.strip().lower()
@@ -85,7 +80,7 @@ def listen(stop_event: threading.Event = _stop_event) -> None:
             except Exception as e:
                 log.debug(f"STT poll error (transient): {e}")
 
-            time.sleep(0.5)   # poll twice per second
+            time.sleep(0.3)
 
     except KeyboardInterrupt:
         log.info("STT stopped by keyboard interrupt.")
