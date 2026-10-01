@@ -26,12 +26,14 @@ INPUT_FILE   = _BASE / "web" / "input.txt"
 OUTPUT_FILE  = _BASE / "web" / "response.txt"
 
 # ── Global System State ───────────────────────────────────────────────────────
-_active_ai_name   = os.getenv("ACTIVE_AI", "piai").lower()
-_backend          = None
-_backend_lock     = threading.Lock()       # ONLY guards reads/writes of _backend reference
-_shutdown_event   = threading.Event()
-_tts_queue        = queue.Queue()
-_switch_in_progress = False                # guard against double-switches
+_active_ai_name     = os.getenv("ACTIVE_AI", "piai").lower()
+_backend            = None
+_backend_lock       = threading.Lock()       # ONLY guards reads/writes of _backend reference
+_shutdown_event     = threading.Event()
+_tts_queue          = queue.Queue()
+_switch_in_progress = False                  # guard against double-switches
+_tts_stop_event     = threading.Event()      # set to interrupt current TTS playback
+_current_engine     = None                   # reference to live pyttsx3 engine (for stop)
 
 
 # ── Shutdown ─────────────────────────────────────────────────────────────────
@@ -110,13 +112,13 @@ def get_active_ai() -> str:
     return _active_ai_name
 
 
-# ── TTS Worker (crash-protected, per-utterance COM isolation) ─────────────────
+# ── TTS Worker (crash-protected, interruptible, per-utterance COM isolation) ───
 def _tts_worker():
     """
-    Dedicated TTS thread. Uses fresh pyttsx3 + COM per utterance to
-    prevent Windows SAPI5 COM apartment lockup after first speech.
-    Automatically restarts if it crashes.
+    Dedicated TTS thread. Uses fresh pyttsx3 + COM per utterance.
+    Checks _tts_stop_event before and during speech — instantly stoppable.
     """
+    global _current_engine
     log.info("🔊 Dedicated Voice TTS Worker active.")
     while not _shutdown_event.is_set():
         try:
@@ -128,22 +130,28 @@ def _tts_worker():
             _tts_queue.task_done()
             continue
 
+        # If a stop was requested before we even start, skip this item
+        if _tts_stop_event.is_set():
+            _tts_stop_event.clear()
+            _tts_queue.task_done()
+            continue
+
         log.info(f"🗣️ Speaking: {text[:80]!r}{'...' if len(text) > 80 else ''}")
 
-        # Per-utterance COM init/deinit to avoid SAPI5 COM lockup
         try:
             import pythoncom
             pythoncom.CoInitialize()
         except Exception:
             pass
 
+        engine = None
         try:
             import pyttsx3
             engine = pyttsx3.init('sapi5')
-            engine.setProperty("rate", 165)
+            _current_engine = engine          # expose ref so stop_tts() can kill it
+            engine.setProperty("rate", 175)
             engine.setProperty("volume", 1.0)
 
-            # Pick Microsoft Zira if available, else first available voice
             voices = engine.getProperty("voices")
             chosen = None
             for v in voices:
@@ -157,12 +165,23 @@ def _tts_worker():
 
             engine.say(text)
             engine.runAndWait()
-            engine.stop()
-            del engine
-            log.info("✅ TTS playback complete.")
+
+            if not _tts_stop_event.is_set():
+                log.info("✅ TTS playback complete.")
+            else:
+                log.info("⏹️ TTS playback interrupted by stop command.")
+                _tts_stop_event.clear()
+
         except Exception as ex:
             log.warning(f"TTS playback error: {ex}")
         finally:
+            try:
+                if engine:
+                    engine.stop()
+                    del engine
+                _current_engine = None
+            except Exception:
+                pass
             try:
                 import pythoncom
                 pythoncom.CoUninitialize()
@@ -184,6 +203,31 @@ def _start_tts_thread():
 _tts_thread = _start_tts_thread()
 
 
+def stop_tts():
+    """
+    Immediately stop current TTS playback and flush all pending speech.
+    Called when user says 'stop friday' or 'quiet friday'.
+    """
+    global _current_engine
+    log.info("⏹️ Stop TTS command received — killing voice output …")
+    _tts_stop_event.set()
+    # Drain the queue so no queued lines play after the interrupt
+    while not _tts_queue.empty():
+        try:
+            _tts_queue.get_nowait()
+            _tts_queue.task_done()
+        except Exception:
+            break
+    # Kill the currently-speaking engine mid-sentence
+    eng = _current_engine
+    if eng:
+        try:
+            eng.stop()
+        except Exception:
+            pass
+    log.info("✅ Voice stopped.")
+
+
 def _speak(text: str):
     """Queue text for non-blocking voice output. Restart TTS thread if dead."""
     global _tts_thread
@@ -193,6 +237,30 @@ def _speak(text: str):
         log.warning("TTS thread died — restarting …")
         _tts_thread = _start_tts_thread()
     _tts_queue.put(text)
+
+
+def _clean_for_speech(text: str) -> str:
+    """
+    Strip markdown and formatting symbols so Zira doesn't read them aloud.
+    Also truncates to a sensible spoken length.
+    """
+    import re
+    # Remove markdown bold/italic
+    text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
+    # Remove markdown headers
+    text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+    # Remove markdown code blocks
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+    # Remove URLs
+    text = re.sub(r'https?://\S+', '', text)
+    # Remove markdown links
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    # Collapse multiple newlines to single space
+    text = re.sub(r'\n+', ' ', text)
+    # Collapse multiple spaces
+    text = re.sub(r'  +', ' ', text)
+    return text.strip()
 
 
 # ── Iron Man Fallback Engine ──────────────────────────────────────────────────
@@ -245,6 +313,21 @@ def brain_loop(stop_event: threading.Event):
 
                 log.info(f"⚡ 'Friday' query received → {cmd!r}")
 
+                # ── STOP / QUIET command — interrupt speech immediately ───────
+                stop_phrases = [
+                    "stop friday", "stop it friday", "quiet friday",
+                    "silence friday", "shut up friday", "enough friday",
+                    "cancel friday", "pause friday", "friday stop",
+                    "friday quiet", "friday silence", "friday enough",
+                ]
+                if any(p in cmd for p in stop_phrases):
+                    stop_tts()
+                    ack = "Understood."
+                    OUTPUT_FILE.write_text(ack, encoding="utf-8")
+                    # Do NOT speak the ack — user wants silence
+                    log.info("Voice stopped on user command.")
+                    continue
+
                 # Voice shutdown command
                 if any(w in cmd for w in ["shutdown friday", "shut down friday"]):
                     msg = "Shutting down all F.R.I.D.A.Y. systems. Goodbye, Boss."
@@ -266,27 +349,35 @@ def brain_loop(stop_event: threading.Event):
                     except Exception as ex:
                         log.error(f"Backend send error: {ex}")
 
-                # Clean up generic "message got cut off" type filler responses
+                # Clean up bad/junk responses before using
                 junk_phrases = [
                     "it looks like your message got cut off",
                     "seems like your message was cut off",
                     "your message got cut off",
+                    "429",          # API rate limit errors
+                    "exceeded your current quota",
+                    "quota exceeded",
+                    "credit_balance_exhausted",
+                    "encountered an issue, boss:",
                 ]
                 if response and any(p in response.lower() for p in junk_phrases):
-                    log.warning("Detected generic AI filler — using fallback engine.")
+                    log.warning("Detected junk/error AI response — using fallback engine.")
                     response = ""
 
                 if not response:
                     log.info("Using Iron Man Fallback Engine …")
                     response = _generate_fast_friday_response(cmd)
 
-                # Write response
+                # Strip markdown/symbols before writing and speaking
+                spoken = _clean_for_speech(response)
+
+                # Write raw response to UI file (shows formatted in chat)
                 OUTPUT_FILE.write_text(response, encoding="utf-8")
                 (_BASE / "output.txt").write_text(response, encoding="utf-8")
                 log.info(f"✅ Response saved ({len(response)} chars).")
 
-                # Speak it
-                _speak(response)
+                # Speak the clean version
+                _speak(spoken)
 
         except Exception as e:
             log.error(f"Brain loop error: {e}")

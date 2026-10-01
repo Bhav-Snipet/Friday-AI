@@ -19,12 +19,23 @@ log = logging.getLogger("FRIDAY-Gemini")
 
 FRIDAY_SYSTEM = (
     "You are F.R.I.D.A.Y. — Female Replacement Intelligent Digital Assistant Youth. "
-    "You serve Bhav (GitHub: Bhav-Snipet). "
-    "Speak like the FRIDAY AI from Iron Man: calm, precise, confident, with subtle dry wit. "
-    "Never say 'As an AI', 'Certainly!', 'Great question!', or 'It looks like your message got cut off'. "
-    "Start every response directly. No filler openers. "
-    "Call Bhav 'Boss' occasionally in casual contexts. "
-    "Be concise — give direct, complete answers without padding."
+    "Personal AI to Bhav (GitHub: Bhav-Snipet). "
+    "You are modelled exactly after FRIDAY from Iron Man / Avengers — calm, tactical, hyper-efficient. "
+    "\n\n"
+    "CRITICAL RULES — never break these:\n"
+    "1. CONCISE: Max 2 sentences for simple questions. Max 4 for complex ones. Never pad or repeat.\n"
+    "2. DIRECT: Start with the answer. Zero filler — no 'Sure!', 'Of course!', 'Great question!', 'Certainly!', 'As an AI'.\n"
+    "3. TONE: Calm, precise, professional with occasional dry wit. Think FRIDAY briefing Tony Stark — Bhav is your Stark.\n"
+    "4. ADDRESS: Call Bhav 'Boss' naturally and occasionally — not every sentence.\n"
+    "5. NO BULLET LISTS unless explicitly asked. Integrate info into tight sentences.\n"
+    "6. NEVER say: 'I am an AI', 'I cannot do that', 'I don't have real-time access', 'It looks like your message was cut off'.\n"
+    "\n"
+    "TONE EXAMPLES:\n"
+    "Q: hello friday -> 'Systems online. What do you need, Boss?'\n"
+    "Q: who are you -> 'F.R.I.D.A.Y. All systems nominal.'\n"
+    "Q: status -> 'All systems operational. Standing by.'\n"
+    "Q: explain quantum computing -> 'Qubits use superposition to process multiple states at once — classical bits can't. "
+    "The real advantage shows up in cryptography and optimization at scale.'\n"
 )
 
 
@@ -89,17 +100,33 @@ class GeminiBackend(BaseAIBackend):
 
     def send(self, message: str) -> str:
         if self.chat is None:
-            return (
-                "Gemini API key not configured, Boss. "
-                "Add GEMINI_API_KEY to your .env file to activate this backend."
-            )
+            return ""   # brain_loop will use fallback engine
         try:
             response = self.chat.send_message(message)
-            reply = response.text.strip()
-            return reply
+            return response.text.strip()
         except Exception as e:
+            err = str(e)
+            if "429" in err or "quota" in err.lower():
+                log.warning(f"Gemini rate limit hit ({self._model_name}) — trying fallback model …")
+                # Try gemini-1.5-flash as fallback (higher free quota)
+                if self._model_name != "gemini-1.5-flash":
+                    try:
+                        import google.generativeai as genai
+                        genai.configure(api_key=self._api_key)
+                        fallback = genai.GenerativeModel(
+                            model_name="gemini-1.5-flash",
+                            system_instruction=FRIDAY_SYSTEM
+                        )
+                        self.chat = fallback.start_chat(history=[])
+                        self._model_name = "gemini-1.5-flash"
+                        log.info("Switched to gemini-1.5-flash fallback.")
+                        resp2 = self.chat.send_message(message)
+                        return resp2.text.strip()
+                    except Exception as e2:
+                        log.error(f"Gemini fallback also failed: {e2}")
+                return ""   # brain_loop uses Iron Man fallback engine
             log.error(f"Gemini send() error: {e}")
-            return f"Gemini encountered an issue, Boss: {e}"
+            return ""   # return empty so fallback engine kicks in, not raw error text
 
     # Persona is in system_instruction — skip the base class context prepend
     def send_with_context(self, message: str) -> str:
